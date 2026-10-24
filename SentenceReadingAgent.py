@@ -91,8 +91,8 @@ class SentenceReadingAgent:
 
         if first_question_word == "when":
             answer = self.when(sentence_lowercase)
-        # elif first_question_word == "where":
-        #     #
+        elif first_question_word == "where":
+            answer = self.where(sentence,question_lowercase)
         # elif first_question_word == "who":
         #     #
         # elif first_question_word == "what":
@@ -107,5 +107,11 @@ class SentenceReadingAgent:
     def when(self, sentence):
         for word in sentence:
             if word.lower() in TIME_WORDS:
+                return word
+        return None
+
+    def where(self, sentence, question_lowercase):
+        for word in sentence:
+            if word.lower() in PLACES and word.lower() not in question_lowercase:
                 return word
         return None
