@@ -54,12 +54,26 @@ def is_a_person(word):
         return True
     return False
 
+def get_verb(word):
+    word = word.lower()
+    if word in IRREGULAR:
+        return IRREGULAR[word]
+    if word in VERBS:
+        return word
+    for ending in ["ing", "ed", "es", "s"]:
+        if word.endswith(ending):
+            base = word[:-len(ending)]
+            if base in VERBS:
+                return base
+            if base + "e" in VERBS:  #
+                return base + "e"
+    #return VERBS.get(word.lower())
+    return None
+
 def find_next_word(words, iter):
-    i = iter + 1
-    while i < len(words):
-        if words[i].lower() not in DETERMINERS:
-            return words[i]
-        i += 1
+    for word in words[iter + 1:]:
+        if word.lower() not in DETERMINERS:
+            return word
     return None
 
 class SentenceReadingAgent:
@@ -96,8 +110,8 @@ class SentenceReadingAgent:
         first_question_word = question_lowercase[0]
 
 
-        print(f'sentence: {sent}, question: {ques}')
-        print(f'sentence_lowercase: {sentence_lowercase}, questio_lowercase: {question_lowercase}')
+        # print(f'sentence: {sent}, question: {ques}')
+        # print(f'sentence_lowercase: {sentence_lowercase}, questio_lowercase: {question_lowercase}')
 
         ##parsing the question to see if it asks who/what/where/when/why/how
         answer = None
@@ -106,8 +120,8 @@ class SentenceReadingAgent:
             answer = self.when(sentence_lowercase)
         elif first_question_word == "where":
             answer = self.where(sentence,question_lowercase)
-        # elif first_question_word == "who":
-        #     #
+        elif first_question_word == "who":
+           answer = self.who(sentence,question, question_lowercase)
         # elif first_question_word == "what":
         #     #
         # elif first_question_word == "how":
@@ -117,7 +131,17 @@ class SentenceReadingAgent:
             return answer
         return sent[0]
 
-    def who(self, sentence, question_lowercase):
+    def get_verb_position(self, sentence, question):
+        s_bases = [get_verb(word) for word in sentence]
+
+        for qw in question[1:]:
+            q_base = get_verb(qw)
+            if q_base is not None and q_base in s_bases:
+                return s_bases.index(q_base)
+
+        return None
+
+    def who(self, sentence, question, question_lowercase):
         ##
         #for who, there are a several ways that the question can be phrased so we have to iterate through
         # 1. the question ends in a preposition like to, from, with.
@@ -130,12 +154,21 @@ class SentenceReadingAgent:
             for i in range(len(sentence)):
                 if sentence[i].lower() == last_word:
                     next_word = find_next_word(sentence, i)
-                    if next_word is not None and is_a_person(next_word) and next_word.lower():
+                    if next_word is not None and is_a_person(next_word) and next_word.lower() not in question_lowercase:
                         return next_word
+
+        # step 2: questoin has a verb
+        verb_pos = self.get_verb_position(sentence, question)
+
+        if verb_pos is not None:
+            for i in range(verb_pos - 1, -1, -1):
+                if is_a_person(sentence[i]) and sentence[i].lower() not in question_lowercase:
+                    return sentence[i]
+
 
         # step 3, just grab the first person in the sentence
         for word in sentence:
-            if is_a_person(word):
+            if is_a_person(word) and word.lower() not in question_lowercase:
                 return word
         return None
 
