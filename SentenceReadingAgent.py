@@ -53,7 +53,6 @@ class SentenceReadingAgent:
         #If you want to do any initial processing, add it here.
         pass
 
-    def isaPerson(self):
 
     def solve(self, sentence, question):
     
@@ -91,14 +90,22 @@ class SentenceReadingAgent:
         answer = None
 
         if first_question_word == "when":
-            #
-        elif first_question_word == "where":
-            #
-        elif first_question_word == "who":
-            #
-        elif first_question_word == "what":
-            #
-        elif first_question_word == "how":
-            #
+            answer = self.when(sentence_lowercase)
+        # elif first_question_word == "where":
+        #     #
+        # elif first_question_word == "who":
+        #     #
+        # elif first_question_word == "what":
+        #     #
+        # elif first_question_word == "how":
+        #     #
 
-        pass
+        if answer is not None:
+            return answer
+        return sent[0]
+
+    def when(self, sentence):
+        for word in sentence:
+            if word.lower() in TIME_WORDS:
+                return word
+        return None
