@@ -42,10 +42,18 @@ ADJECTIVES = {"long", "short", "big", "large", "small", "little", "old","young",
 CLOCK = re.compile(r"^\d{1,2}:\d{2}(AM|PM|am|pm)?$")
 
 
+def lowercase_words(words):
+    lower = []
+    for w in words:
+        lower.append(w.lower())
+    return lower
+
 class SentenceReadingAgent:
     def __init__(self):
         #If you want to do any initial processing, add it here.
         pass
+
+    def isaPerson(self):
 
     def solve(self, sentence, question):
     
@@ -65,9 +73,32 @@ class SentenceReadingAgent:
           Also not all words will be processed using the correct lexing for every possible problem the 
             agent might encounter and you are ENCOURAGED to expand these in your agents knowledge representation.
         '''
+        # Add your code here! Your solve method should receive
+        # two strings as input: sentence and question. It should
+        # return a string representing the answer to the question.
+        sent = sentence.strip().rstrip(".?!").split()
+        ques = question.strip().rstrip(".?!").split()
 
-    
-        #Add your code here! Your solve method should receive
-		#two strings as input: sentence and question. It should
-		#return a string representing the answer to the question.
+        sentence_lowercase = lowercase_words(sent)
+        question_lowercase = lowercase_words(ques)
+        first_question_word = question_lowercase[0]
+
+
+        print(f'sentence: {sent}, question: {ques}')
+        print(f'sentence_lowercase: {sentence_lowercase}, questio_lowercase: {question_lowercase}')
+
+        ##parsing the question to see if it asks who/what/where/when/why/how
+        answer = None
+
+        if first_question_word == "when":
+            #
+        elif first_question_word == "where":
+            #
+        elif first_question_word == "who":
+            #
+        elif first_question_word == "what":
+            #
+        elif first_question_word == "how":
+            #
+
         pass
