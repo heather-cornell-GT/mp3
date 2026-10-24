@@ -3,7 +3,7 @@ import re
 NAMES = {"serena", "andrew", "bobbie", "cason", "david", "farzana", "frank","hannah", "ida", "irene", "jim", "jose", "keith", "laura", "lucy",
          "meredith", "nick", "ada", "yeeling", "yan"}
 
-PERSON_NOUNS = {"man", "men", "boy", "girl", "mother", "father", "friend","children", "people", "king", "adult", "adults", "person",
+PEOPLE = {"man", "men", "boy", "girl", "mother", "father", "friend","children", "people", "king", "adult", "adults", "person",
                 "family", "dog", "fish", "bird", "horse", "animal"}
 
 DETERMINERS = {"the", "a", "an", "his", "her", "their", "my", "our", "your","this", "that", "these", "those", "some", "every", "each"}
@@ -48,6 +48,20 @@ def lowercase_words(words):
         lower.append(w.lower())
     return lower
 
+def is_a_person(word):
+    word = word.lower()
+    if word in NAMES or word in PEOPLE:
+        return True
+    return False
+
+def find_next_word(words, iter):
+    i = iter + 1
+    while i < len(words):
+        if words[i].lower() not in DETERMINERS:
+            return words[i]
+        i += 1
+    return None
+
 class SentenceReadingAgent:
     def __init__(self):
         #If you want to do any initial processing, add it here.
@@ -55,7 +69,6 @@ class SentenceReadingAgent:
 
 
     def solve(self, sentence, question):
-    
         '''
           You can use a library like spacy (https://spacy.io/usage/linguistic-features) to preprocess the
             mostcommon.txt file. There are others that could be used but you must use them in preprocessing only.
@@ -104,6 +117,28 @@ class SentenceReadingAgent:
             return answer
         return sent[0]
 
+    def who(self, sentence, question_lowercase):
+        ##
+        #for who, there are a several ways that the question can be phrased so we have to iterate through
+        # 1. the question ends in a preposition like to, from, with.
+        # 2. the question has a verb, and we look one word to the left of the verb and get the answer
+        # 3. if 1 and 2 dont work, then we just find the first person in the sentence and return that
+        ##
+        last_word =  question_lowercase[-1]
+        # step 1, get last word and see if its a preposition
+        if last_word in PREPOSITIONS:
+            for i in range(len(sentence)):
+                if sentence[i].lower() == last_word:
+                    next_word = find_next_word(sentence, i)
+                    if next_word is not None and is_a_person(next_word) and next_word.lower():
+                        return next_word
+
+        # step 3, just grab the first person in the sentence
+        for word in sentence:
+            if is_a_person(word):
+                return word
+        return None
+
     def when(self, sentence):
         for word in sentence:
             if word.lower() in TIME_WORDS:
@@ -115,3 +150,4 @@ class SentenceReadingAgent:
             if word.lower() in PLACES and word.lower() not in question_lowercase:
                 return word
         return None
+
