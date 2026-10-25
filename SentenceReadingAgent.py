@@ -228,22 +228,23 @@ class SentenceReadingAgent:
             if next_word is not None and next_word.lower() not in question_lowercase:
                 return next_word
 
-        ##what is/was/were/are ___ or what will be/been
-        if second_word in ("is", "are", "was", "were") or last_word in ("be", "been"):
-            result = self.what_is_blank(sentence, question_lowercase)
-            self.log("what: is/be question, what_is_blank returned:", result)
-            if result is not None:
-                return result
-
-        #Sentence: My dog Red is very large.
-        #Question: What animal is Red?
-        if len(question_lowercase) >= 4 and question_lowercase[2] in ("is", "are", "was", "were"):
+        # Sentence: My dog Red is very large.
+        # Question: What animal is Red?
+        if (len(question_lowercase) >= 4 and question_lowercase[2] in ("is", "are", "was", "were")) \
+                or (len(question_lowercase) == 3 and second_word in ("is", "are", "was", "were")):
             if last_word in lowercase_sentence:
                 ind = lowercase_sentence.index(last_word)
                 if ind > 0 and sentence[ind][0].isupper():
                     return sentence[ind - 1]
                 if ind + 1 < len(sentence):
                     return sentence[ind + 1]
+
+        ##what is/was/were/are ___ or what will be/been
+        if second_word in ("is", "are", "was", "were") or last_word in ("be", "been"):
+            result = self.what_is_blank(sentence, question_lowercase)
+            self.log("what: is/be question, what_is_blank returned:", result)
+            if result is not None:
+                return result
 
         verb_pos = self.get_verb_position(sentence, question)
         self.log("what: verb position in sentence:", verb_pos)
@@ -257,7 +258,15 @@ class SentenceReadingAgent:
             if word_low not in DETERMINERS and word_low not in NAMES and word_low not in TIME_WORDS:
                  matched_words.append(word)
 
-        return  matched_words[-1] if  matched_words else None
+        if matched_words:
+            return matched_words[-1]
+
+        #Sentence: The blue bird will sing in the morning.
+        #Question: What will sing in the morning?
+        for word in reversed(sentence[:verb_pos]):
+            if word.lower() not in DETERMINERS and word.lower() not in AUXILIARIES:
+                return word
+        return None
 
     def what_is_blank(self, sentence, question_lowercase):
         ##failing a lot of what is ___ or what was ....
