@@ -15,7 +15,7 @@ AUXILIARIES = {"do", "does", "did", "is", "are", "was", "were", "am", "be","been
 
 VERBS = {"bring", "go", "walk", "run", "take", "give", "make", "see", "come","eat", "read", "write", "play", "find", "get", "like", "want",
          "live", "work", "help", "show", "look", "call", "say", "tell","ask", "carry", "drive", "ride", "sing", "learn", "study", "leave",
-         "keep", "open", "close", "stop", "start", "begin", "put", "turn" "move", "build", "hold", "watch", "listen", "hear", "draw", "feel",
+         "keep", "open", "close", "stop", "start", "begin", "put", "turn" ,"move", "build", "hold", "watch", "listen", "hear", "draw", "feel",
          "need", "know", "think", "try", "use", "love", "sit", "stand","travel", "fly", "wait", "teach", "plant", "grow", "cut", "cover",
          "follow", "fill", "pull", "cross", "pass", "serve", "check","measure", "add", "answer", "remember", "laugh", "sleep", "decide",
          "press", "form", "happen", "swim", "reach", "sound", "seem","cry", "fall", "rest", "lay", "spell", "change"}
@@ -113,17 +113,16 @@ class SentenceReadingAgent:
         ##parsing the question to see if it asks who/what/where/when/why/how
         answer = None
 
-        if first_question_word == "when":
-            answer = self.when(sentence_lowercase)
+        if first_question_word == "when" or "time" in question_lowercase:
+            answer = self.when(sent)
         elif first_question_word == "where":
             answer = self.where(sent, question_lowercase)
         elif first_question_word == "who":
-           answer = self.who(sent, ques, question_lowercase)
+            answer = self.who(sent, ques, question_lowercase)
         elif first_question_word == "what":
             answer = self.what(sent, ques, question_lowercase)
         elif first_question_word == "how":
             answer = self.how(sent, sentence_lowercase, question_lowercase)
-
         if answer is not None:
             return answer
         return sent[0]
@@ -203,6 +202,24 @@ class SentenceReadingAgent:
                  matched_words.append(word)
 
         return  matched_words[-1] if  matched_words else None
+
+    def what_is_blank(self, sentence, question_lowercase):
+        ##failing a lot of what is ___ or what was ....
+        #Sentence: A tree is made of wood.
+        #Question: What is made of wood?
+
+        lowercase_sentence = lowercase_words(sentence)
+        catch_words = ["is", "are", "was", "were", "am", "be", "been"]
+        #first is  be in the sentence
+        catch_positions = [i for i, w in enumerate(lowercase_sentence) if w in catch_words]
+        if not catch_positions:
+            return None
+        trace = catch_positions[0]
+
+        subject = [word for word in sentence[:trace]
+                   if word.lower() not in DETERMINERS and word.lower() not in AUXILIARIES]
+        return subject[-1] if subject else None
+
 
     def how(self, sentence, sentence_lowercase, question_lowercase):
         second_word = question_lowercase[1]
