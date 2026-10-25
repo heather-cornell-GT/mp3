@@ -108,20 +108,17 @@ class SentenceReadingAgent:
         sentence_lowercase = lowercase_words(sent)
         question_lowercase = lowercase_words(ques)
         first_question_word = question_lowercase[0]
-
-
         # print(f'sentence: {sent}, question: {ques}')
         # print(f'sentence_lowercase: {sentence_lowercase}, questio_lowercase: {question_lowercase}')
-
         ##parsing the question to see if it asks who/what/where/when/why/how
         answer = None
 
         if first_question_word == "when":
             answer = self.when(sentence_lowercase)
         elif first_question_word == "where":
-            answer = self.where(sentence,question_lowercase)
+            answer = self.where(sent, question_lowercase)
         elif first_question_word == "who":
-           answer = self.who(sentence,question, question_lowercase)
+           answer = self.who(sent, ques, question_lowercase)
         elif first_question_word == "what":
             answer = self.what(sent, ques, question_lowercase)
         elif first_question_word == "how":
@@ -197,51 +194,64 @@ class SentenceReadingAgent:
         verb_pos = self.get_verb_position(sentence, question)
         if verb_pos is None:
             return None
-        valid_words = []
+        matched_words = []
         for word in sentence[verb_pos + 1:]:
             word_low = word.lower()
             if word_low in PREPOSITIONS:
                 break
             if word_low not in DETERMINERS and word_low not in NAMES:
-                valid_words.append(word)
+                 matched_words.append(word)
 
-        return valid_words[-1] if valid_words else None
+        return  matched_words[-1] if  matched_words else None
 
     def how(self, sentence, sentence_lowercase, question_lowercase):
-
         second_word = question_lowercase[1]
         if second_word in ADJECTIVES:
             for word in question_lowercase[2:]:
-                if word in sentence_lowercase and word not in AUXILIARIES and word not in DETERMINERS:
-                    pos = sentence_lowercase.index(word)
-                    if pos > 0:
-                        before = sentence_lowercase[pos - 1]
+                if word in AUXILIARIES or word in DETERMINERS or word in NAMES or word == "and":
+                    continue
+                if get_verb(word) is not None:
+                    continue
+                if word in sentence_lowercase:
+                    ind = sentence_lowercase.index(word)
+                    if ind > 0:
+                        before = sentence_lowercase[ind - 1]
                         if before not in DETERMINERS and before not in PREPOSITIONS:
-                            return sentence[pos - 1]
-            for word in sentence:
-                if word.lower() in ADJECTIVES:
-                    return word
-
+                            return sentence[ind - 1]
+            if second_word == "long":
+                return self.get_first_word_in_sentence(sentence, UNITS_TIME)
+            return self.get_first_word_in_sentence(sentence, ADJECTIVES)
+            # noun_in_sentence = any(
+            #     w in sentence_lowercase and w not in AUXILIARIES and w not in DETERMINERS and w not in NAMES
+            #     for w in question_lowercase[2:]
+            # )
+            # if not noun_in_sentence:
+            #     for word in sentence:
+            #         if word.lower() in UNITS_TIME:
+            #             return word
         elif second_word == "far":
-            for word in sentence:
-                if word.lower() in UNITS_DISTANCE:
-                    return word
-
+            return self.get_first_word_in_sentence(sentence, UNITS_DISTANCE)
+            # for word in sentence:
+            #     if word.lower() in UNITS_DISTANCE:
+            #         return word
         elif second_word in ("many", "much"):
             for word in sentence:
                 if word.lower() in NUMBERS or word.isdigit():
                     return word
-        elif second_word == "long":
-            noun_in_sentence = any(
-                w in sentence_lowercase and w not in AUXILIARIES and w not in DETERMINERS and w not in NAMES
-                for w in question_lowercase[2:]
-            )
-            if not noun_in_sentence:
-                for word in sentence:
-                    if word.lower() in UNITS_TIME:
-                        return word
+        ##
+        #question_8
+        #Sentence: David and Lucy walk one mile to go to school every day at 8:00AM when there is no snow.
+        #Question: How do David and Lucy get to school?
+        ##
+        elif second_word in AUXILIARIES:
+            if "by" in sentence_lowercase:
+                return find_next_word(sentence, sentence_lowercase.index("by"))
+            for word in sentence:
+                if get_verb(word) in MANNER_VERBS and word.lower() not in question_lowercase:
+                    return word
 
-    def get_first_word_in_sentence(words, word_list):
+
+    def get_first_word_in_sentence(self, words, word_list):
         for word in words:
             if word.lower() in word_list:
                 return word
