@@ -2,7 +2,7 @@ import re
 
 NAMES = {"serena", "andrew", "bobbie", "cason", "david", "farzana", "frank","hannah", "ida", "irene", "jim", "jose", "keith", "laura", "lucy",
          "meredith", "nick", "ada", "yeeling", "yan"}
-
+SUBJECT_PRONOUNS = {"she", "he", "they", "we", "i", "you"}
 PEOPLE = {"man", "men", "boy", "girl", "mother", "father", "friend","children", "people", "king", "adult", "adults", "person",
                 "family", "dog", "fish", "bird", "horse", "animal"}
 
@@ -33,8 +33,8 @@ PLACES = {"school", "home", "house", "city", "town", "room", "river","farm", "co
 
 UNITS_DISTANCE = {"mile", "miles", "feet", "foot", "inch", "inches"}
 UNITS_TIME = {"hour", "hours", "minute", "minutes", "second", "seconds","day", "days", "week", "weeks", "year", "years", "night"}
-TIME_WORDS = {"morning", "night", "day", "evening", "noon", "week", "year","today", "early", "late", "always", "often", "never", "once"}
-NUMBERS = {"one", "two", "three", "four", "five", "six", "ten", "hundred","thousand", "half"}
+TIME_WORDS = {"soon," "morning", "night", "day", "evening", "noon", "week", "year","today", "early", "late", "always", "often", "never", "once"}
+NUMBERS = {"all","one", "two", "three", "four", "five", "six", "ten", "hundred","thousand", "half"}
 COLORS = {"red", "blue", "green", "black", "white", "gold", "yellow"}
 ADJECTIVES = {"long", "short", "big", "large", "small", "little", "old","young", "high", "low", "hot", "cold", "fast", "slow", "hard",
               "good", "great", "new", "warm", "cool", "deep", "dark", "busy","quick", "strong", "free", "full", "simple", "real", "best",
@@ -50,7 +50,7 @@ def lowercase_words(words):
 
 def is_a_person(word):
     word = word.lower()
-    if word in NAMES or word in PEOPLE:
+    if word in NAMES or word in PEOPLE or word in SUBJECT_PRONOUNS:
         return True
     return False
 
@@ -77,9 +77,13 @@ def find_next_word(words, iter):
     return None
 
 class SentenceReadingAgent:
-    def __init__(self):
+    def __init__(self, debug = False):
         #If you want to do any initial processing, add it here.
-        pass
+        self.debug = debug  # set to True to print debugging info
+
+    def log(self, *args):
+        if self.debug:
+            print("[DEBUG]", *args)
 
 
     def solve(self, sentence, question):
@@ -108,6 +112,8 @@ class SentenceReadingAgent:
         sentence_lowercase = lowercase_words(sent)
         question_lowercase = lowercase_words(ques)
         first_question_word = question_lowercase[0]
+        self.log("sentence:", sent)
+        self.log("question:", ques)
         # print(f'sentence: {sent}, question: {ques}')
         # print(f'sentence_lowercase: {sentence_lowercase}, questio_lowercase: {question_lowercase}')
         ##parsing the question to see if it asks who/what/where/when/why/how
@@ -124,7 +130,9 @@ class SentenceReadingAgent:
         elif first_question_word == "how":
             answer = self.how(sent, sentence_lowercase, question_lowercase)
         if answer is not None:
+            self.log("answer:", answer)
             return answer
+        self.log("no rule found an answer, falling back to first word:", sent[0])
         return sent[0]
 
     def get_verb_position(self, sentence, question):
@@ -151,17 +159,22 @@ class SentenceReadingAgent:
                 if sentence[i].lower() == last_word:
                     next_word = find_next_word(sentence, i)
                     if next_word is not None and is_a_person(next_word) and next_word.lower() not in question_lowercase:
+                        self.log("who step 1: question ends in", last_word, "-> word after it:", next_word)
                         return next_word
+
+
 
         # step 2: questoin has a verb
         verb_pos = self.get_verb_position(sentence, question)
         if verb_pos is not None:
             for i in range(verb_pos - 1, -1, -1):
                 if is_a_person(sentence[i]) and sentence[i].lower() not in question_lowercase:
+                    self.log("who step 2: verb at position", verb_pos, "-> person to its left:", sentence[i])
                     return sentence[i]
         # step 3, just grab the first person in the sentence
         for word in sentence:
             if is_a_person(word) and word.lower() not in question_lowercase:
+                self.log("who step 3: first person not in question:", word)
                 return word
         return None
 
@@ -177,6 +190,7 @@ class SentenceReadingAgent:
     def where(self, sentence, question_lowercase):
         for word in sentence:
             if word.lower() in PLACES and word.lower() not in question_lowercase:
+                self.log("where: found place word:", word)
                 return word
         return None
 
@@ -190,7 +204,13 @@ class SentenceReadingAgent:
             for word in sentence:
                 if word.lower() in COLORS:
                     return word
+        if question_lowercase[1] in ("is", "are", "was", "were") or question_lowercase[-1] in ("be", "been"):
+            result = self.what_is_blank(sentence, question_lowercase)
+            self.log("what: is/be question, what_is_blank returned:", result)
+            if result is not None:
+                return result
         verb_pos = self.get_verb_position(sentence, question)
+        self.log("what: verb position in sentence:", verb_pos)
         if verb_pos is None:
             return None
         matched_words = []
@@ -198,7 +218,7 @@ class SentenceReadingAgent:
             word_low = word.lower()
             if word_low in PREPOSITIONS:
                 break
-            if word_low not in DETERMINERS and word_low not in NAMES:
+            if word_low not in DETERMINERS and word_low not in NAMES and word_low not in TIME_WORDS:
                  matched_words.append(word)
 
         return  matched_words[-1] if  matched_words else None
@@ -209,12 +229,17 @@ class SentenceReadingAgent:
         #Question: What is made of wood?
 
         lowercase_sentence = lowercase_words(sentence)
-        catch_words = ["is", "are", "was", "were", "am", "be", "been"]
-        #first is  be in the sentence
+        catch_words = {"is", "are", "was", "were", "am", "be", "been"}
+        #first "is" or   "be" in the sentence
         catch_positions = [i for i, w in enumerate(lowercase_sentence) if w in catch_words]
         if not catch_positions:
             return None
         trace = catch_positions[0]
+
+        filler_word = [word for word in question_lowercase[1:]
+                   if word not in AUXILIARIES | DETERMINERS | catch_words]
+
+        if any(word in lowercase_sentence[:trace] for word in filler_word): return find_next_word(sentence, trace)
 
         subject = [word for word in sentence[:trace]
                    if word.lower() not in DETERMINERS and word.lower() not in AUXILIARIES]
@@ -223,6 +248,7 @@ class SentenceReadingAgent:
 
     def how(self, sentence, sentence_lowercase, question_lowercase):
         second_word = question_lowercase[1]
+        self.log("how: second word is", second_word)
         if second_word in ADJECTIVES:
             for word in question_lowercase[2:]:
                 if word in AUXILIARIES or word in DETERMINERS or word in NAMES or word == "and":
