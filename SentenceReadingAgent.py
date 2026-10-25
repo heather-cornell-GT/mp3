@@ -197,22 +197,54 @@ class SentenceReadingAgent:
         # the next preposition, skipping names and determiners
         ####
        # answer = None
+        lowercase_sentence = lowercase_words(sentence)
+        second_word = question_lowercase[1]
+        last_word = question_lowercase[-1]
+
+        #questions about color
         if "color" in question_lowercase:
             for word in sentence:
                 if word.lower() in COLORS:
                     return word
-        if question_lowercase[1] in ("is", "are", "was", "were") or question_lowercase[-1] in ("be", "been"):
+
+        #Sentence: The sound of rain is cool.
+        #Question: What has a cool sound?
+        if second_word in ("has", "have"):
+            for word in sentence:
+                if word.lower() not in question_lowercase and word.lower() not in DETERMINERS | PREPOSITIONS | AUXILIARIES:
+                    return word
+
+        #Sentence: The white dog and the blue horse play together.
+        #Question: What do the dog and horse do?
+        if last_word in ("do", "does", "did"):
+            for word in sentence:
+                if get_verb(word) is not None and word.lower() not in question_lowercase:
+                    return word
+
+        #Sentence: A tree is made of wood.
+        #Question: What is made of wood?
+        if last_word in PREPOSITIONS and last_word in lowercase_sentence:
+            next_word = find_next_word(sentence, lowercase_sentence.index(last_word))
+            if next_word is not None and next_word.lower() not in question_lowercase:
+                return next_word
+
+        ##what is/was/were/are ___ or what will be/been
+        if second_word in ("is", "are", "was", "were") or last_word in ("be", "been"):
             result = self.what_is_blank(sentence, question_lowercase)
             self.log("what: is/be question, what_is_blank returned:", result)
             if result is not None:
                 return result
+
+        #Sentence: My dog Red is very large.
+        #Question: What animal is Red?
         if len(question_lowercase) >= 4 and question_lowercase[2] in ("is", "are", "was", "were"):
-            lowercase_sentence = lowercase_words(sentence)
-            word_description = question_lowercase[-1]
-            if word_description in lowercase_sentence:
-                pos = lowercase_sentence.index(word_description)
-                if pos + 1 < len(sentence):
-                    return sentence[pos + 1]
+            if last_word in lowercase_sentence:
+                ind = lowercase_sentence.index(last_word)
+                if ind > 0 and sentence[ind][0].isupper():
+                    return sentence[ind - 1]
+                if ind + 1 < len(sentence):
+                    return sentence[ind + 1]
+
         verb_pos = self.get_verb_position(sentence, question)
         self.log("what: verb position in sentence:", verb_pos)
         if verb_pos is None:
@@ -282,9 +314,15 @@ class SentenceReadingAgent:
             #     if word.lower() in UNITS_DISTANCE:
             #         return word
         elif second_word in ("many", "much"):
-            for word in sentence:
-                if word.lower() in NUMBERS or word.isdigit():
-                    return word
+            #Sentence: There are one hundred adults in that city.
+            #Question: How many adults are in this city?
+            if len(question_lowercase) > 2 and question_lowercase[2] in lowercase_sentence:
+                ind = lowercase_sentence.index(question_lowercase[2])
+                if ind > 0 and (lowercase_sentence[ind - 1] in NUMBERS or sentence[ind - 1].isdigit()):
+                    return sentence[ind - 1]
+            numbers = [w for w in sentence if w.lower() in NUMBERS or w.isdigit()]
+            if numbers:
+                return numbers[-1]
         ##
         #question_8
         #Sentence: David and Lucy walk one mile to go to school every day at 8:00AM when there is no snow.
