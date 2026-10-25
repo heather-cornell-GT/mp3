@@ -159,13 +159,10 @@ class SentenceReadingAgent:
 
         # step 2: questoin has a verb
         verb_pos = self.get_verb_position(sentence, question)
-
         if verb_pos is not None:
             for i in range(verb_pos - 1, -1, -1):
                 if is_a_person(sentence[i]) and sentence[i].lower() not in question_lowercase:
                     return sentence[i]
-
-
         # step 3, just grab the first person in the sentence
         for word in sentence:
             if is_a_person(word) and word.lower() not in question_lowercase:
@@ -224,5 +221,11 @@ class SentenceReadingAgent:
             for word in sentence:
                 if word.lower() in ADJECTIVES:
                     return word
+
+    def get_first_word_in_sentence(words, word_list):
+        for word in words:
+            if word.lower() in word_list:
+                return word
+        return None
 
 
