@@ -174,6 +174,9 @@ class SentenceReadingAgent:
 
     def when(self, sentence):
         for word in sentence:
+            if CLOCK.match(word):
+                return word
+        for word in sentence:
             if word.lower() in TIME_WORDS:
                 return word
         return None
@@ -183,4 +186,22 @@ class SentenceReadingAgent:
             if word.lower() in PLACES and word.lower() not in question_lowercase:
                 return word
         return None
+
+    def what(self, sentence, question, question_lowercase):
+        ####
+        #find the verb in the sentene, then iterate through e ah word after the verb until
+        # the next preposition, skipping names and determiners
+        ####
+        answer = None
+
+        verb_pos = self.get_verb_position(sentence, question)
+        if verb_pos is None:
+            return None
+
+        for word in sentence[verb_pos + 1:]:
+            if word.lower() in PREPOSITIONS:
+                break
+            if word.lower() not in DETERMINERS and word.lower() not in NAMES:
+                answer = word
+        return answer
 
