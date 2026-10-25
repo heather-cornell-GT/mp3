@@ -33,7 +33,7 @@ PLACES = {"school", "home", "house", "city", "town", "room", "river","farm", "co
 
 UNITS_DISTANCE = {"mile", "miles", "feet", "foot", "inch", "inches"}
 UNITS_TIME = {"hour", "hours", "minute", "minutes", "second", "seconds","day", "days", "week", "weeks", "year", "years", "night"}
-TIME_WORDS = {"soon," "morning", "night", "day", "evening", "noon", "week", "year","today", "early", "late", "always", "often", "never", "once"}
+TIME_WORDS = {"soon", "morning", "night", "day", "evening", "noon", "week", "year","today", "early", "late", "always", "often", "never", "once"}
 NUMBERS = {"all","one", "two", "three", "four", "five", "six", "ten", "hundred","thousand", "half"}
 COLORS = {"red", "blue", "green", "black", "white", "gold", "yellow"}
 ADJECTIVES = {"long", "short", "big", "large", "small", "little", "old","young", "high", "low", "hot", "cold", "fast", "slow", "hard",
@@ -109,13 +109,13 @@ class SentenceReadingAgent:
         sent = sentence.strip().rstrip(".?!").split()
         ques = question.strip().rstrip(".?!").split()
 
-        sentence_lowercase = lowercase_words(sent)
+        lowercase_sentence = lowercase_words(sent)
         question_lowercase = lowercase_words(ques)
         first_question_word = question_lowercase[0]
         self.log("sentence:", sent)
         self.log("question:", ques)
         # print(f'sentence: {sent}, question: {ques}')
-        # print(f'sentence_lowercase: {sentence_lowercase}, questio_lowercase: {question_lowercase}')
+        # print(f'lowercase_sentence: {lowercase_sentence}, questio_lowercase: {question_lowercase}')
         ##parsing the question to see if it asks who/what/where/when/why/how
         answer = None
 
@@ -128,7 +128,7 @@ class SentenceReadingAgent:
         elif first_question_word == "what":
             answer = self.what(sent, ques, question_lowercase)
         elif first_question_word == "how":
-            answer = self.how(sent, sentence_lowercase, question_lowercase)
+            answer = self.how(sent, lowercase_sentence, question_lowercase)
         if answer is not None:
             self.log("answer:", answer)
             return answer
@@ -161,9 +161,6 @@ class SentenceReadingAgent:
                     if next_word is not None and is_a_person(next_word) and next_word.lower() not in question_lowercase:
                         self.log("who step 1: question ends in", last_word, "-> word after it:", next_word)
                         return next_word
-
-
-
         # step 2: questoin has a verb
         verb_pos = self.get_verb_position(sentence, question)
         if verb_pos is not None:
@@ -196,7 +193,7 @@ class SentenceReadingAgent:
 
     def what(self, sentence, question, question_lowercase):
         ####
-        #find the verb in the sentene, then iterate through e ah word after the verb until
+        #find the verb in the sentene, then iterate through the word after the verb until
         # the next preposition, skipping names and determiners
         ####
        # answer = None
@@ -209,6 +206,13 @@ class SentenceReadingAgent:
             self.log("what: is/be question, what_is_blank returned:", result)
             if result is not None:
                 return result
+        if len(question_lowercase) >= 4 and question_lowercase[2] in ("is", "are", "was", "were"):
+            lowercase_sentence = lowercase_words(sentence)
+            word_description = question_lowercase[-1]
+            if word_description in lowercase_sentence:
+                pos = lowercase_sentence.index(word_description)
+                if pos + 1 < len(sentence):
+                    return sentence[pos + 1]
         verb_pos = self.get_verb_position(sentence, question)
         self.log("what: verb position in sentence:", verb_pos)
         if verb_pos is None:
@@ -246,7 +250,7 @@ class SentenceReadingAgent:
         return subject[-1] if subject else None
 
 
-    def how(self, sentence, sentence_lowercase, question_lowercase):
+    def how(self, sentence, lowercase_sentence, question_lowercase):
         second_word = question_lowercase[1]
         self.log("how: second word is", second_word)
         if second_word in ADJECTIVES:
@@ -255,17 +259,17 @@ class SentenceReadingAgent:
                     continue
                 if get_verb(word) is not None:
                     continue
-                if word in sentence_lowercase:
-                    ind = sentence_lowercase.index(word)
+                if word in lowercase_sentence:
+                    ind = lowercase_sentence.index(word)
                     if ind > 0:
-                        before = sentence_lowercase[ind - 1]
+                        before = lowercase_sentence[ind - 1]
                         if before not in DETERMINERS and before not in PREPOSITIONS:
                             return sentence[ind - 1]
             if second_word == "long":
                 return self.get_first_word_in_sentence(sentence, UNITS_TIME)
             return self.get_first_word_in_sentence(sentence, ADJECTIVES)
             # noun_in_sentence = any(
-            #     w in sentence_lowercase and w not in AUXILIARIES and w not in DETERMINERS and w not in NAMES
+            #     w in lowercase_sentence and w not in AUXILIARIES and w not in DETERMINERS and w not in NAMES
             #     for w in question_lowercase[2:]
             # )
             # if not noun_in_sentence:
@@ -287,8 +291,8 @@ class SentenceReadingAgent:
         #Question: How do David and Lucy get to school?
         ##
         elif second_word in AUXILIARIES:
-            if "by" in sentence_lowercase:
-                return find_next_word(sentence, sentence_lowercase.index("by"))
+            if "by" in lowercase_sentence:
+                return find_next_word(sentence, lowercase_sentence.index("by"))
             for word in sentence:
                 if get_verb(word) in MANNER_VERBS and word.lower() not in question_lowercase:
                     return word
