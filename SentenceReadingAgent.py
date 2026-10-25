@@ -122,10 +122,10 @@ class SentenceReadingAgent:
             answer = self.where(sentence,question_lowercase)
         elif first_question_word == "who":
            answer = self.who(sentence,question, question_lowercase)
-        # elif first_question_word == "what":
-        #     #
-        # elif first_question_word == "how":
-        #     #
+        elif first_question_word == "what":
+            answer = self.what(sent, ques, question_lowercase)
+        elif first_question_word == "how":
+            answer = self.how(sent, sentence_lowercase, question_lowercase)
 
         if answer is not None:
             return answer
@@ -221,6 +221,25 @@ class SentenceReadingAgent:
             for word in sentence:
                 if word.lower() in ADJECTIVES:
                     return word
+
+        elif second_word == "far":
+            for word in sentence:
+                if word.lower() in UNITS_DISTANCE:
+                    return word
+
+        elif second_word in ("many", "much"):
+            for word in sentence:
+                if word.lower() in NUMBERS or word.isdigit():
+                    return word
+        elif second_word == "long":
+            noun_in_sentence = any(
+                w in sentence_lowercase and w not in AUXILIARIES and w not in DETERMINERS and w not in NAMES
+                for w in question_lowercase[2:]
+            )
+            if not noun_in_sentence:
+                for word in sentence:
+                    if word.lower() in UNITS_TIME:
+                        return word
 
     def get_first_word_in_sentence(words, word_list):
         for word in words:
