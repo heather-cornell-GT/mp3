@@ -192,16 +192,37 @@ class SentenceReadingAgent:
         #find the verb in the sentene, then iterate through e ah word after the verb until
         # the next preposition, skipping names and determiners
         ####
-        answer = None
-
+       # answer = None
+        if "color" in question_lowercase:
+            for word in sentence:
+                if word.lower() in COLORS:
+                    return word
         verb_pos = self.get_verb_position(sentence, question)
         if verb_pos is None:
             return None
-
+        valid_words = []
         for word in sentence[verb_pos + 1:]:
-            if word.lower() in PREPOSITIONS:
+            word_low = word.lower()
+            if word_low in PREPOSITIONS:
                 break
-            if word.lower() not in DETERMINERS and word.lower() not in NAMES:
-                answer = word
-        return answer
+            if word_low not in DETERMINERS and word_low not in NAMES:
+                valid_words.append(word)
+
+        return valid_words[-1] if valid_words else None
+
+    def how(self, sentence, sentence_lowercase, question_lowercase):
+
+        second_word = question_lowercase[1]
+        if second_word in ADJECTIVES:
+            for word in question_lowercase[2:]:
+                if word in sentence_lowercase and word not in AUXILIARIES and word not in DETERMINERS:
+                    pos = sentence_lowercase.index(word)
+                    if pos > 0:
+                        before = sentence_lowercase[pos - 1]
+                        if before not in DETERMINERS and before not in PREPOSITIONS:
+                            return sentence[pos - 1]
+            for word in sentence:
+                if word.lower() in ADJECTIVES:
+                    return word
+
 
